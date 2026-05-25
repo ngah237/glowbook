@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String          @id @default(dbgenerated("(gen_random_uuid())::text")) @map("id") @db.VarChar(255)
+  email             String          @unique @map("email") @db.VarChar(255)
+  password          String          @map("password") @db.VarChar(255)
+  nomSalon          String?         @map("nom_salon") @db.VarChar(255)
+  slug              String?         @unique @map("slug") @db.VarChar(255)
+  logoUrl           String?         @map("logo_url")
+  logoPublicId      String?         @map("logo_public_id")
+  banniereUrl       String?         @map("banniere_url")
+  bannierePublicId  String?         @map("banniere_public_id")
+  telephone         String?         @map("telephone") @db.VarChar(50)
+  themePrimary      String?         @default("#C2185B") @map("theme_primary") @db.VarChar(20)
+  themeBackground   String?         @default("#FDFBF9") @map("theme_background") @db.VarChar(20)
+  stripeAccountId   String?         @map("stripe_account_id") @db.VarChar(255)
+  acompteType       String?         @default("percentage") @map("acompte_type") @db.VarChar(20)
+  acompteValeur     Int?            @default(30) @map("acompte_valeur")
+  notificationEmail Boolean?        @default(true) @map("notification_email")
+  notificationSms   Boolean?        @default(false) @map("notification_sms")
+  emailVerified     DateTime?       @map("email_verified") @db.Timestamp(6)
+  createdAt         DateTime?       @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt         DateTime?       @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  bookings          Booking[]
+  disponibilites    Disponibilite[]
+  exceptions        Exception[]
+  services          Service[]
+
+  @@map("users")
+}
+
+model Service {
+  id          String         @id @default(dbgenerated("(gen_random_uuid())::text")) @map("id") @db.VarChar(255)
+  userId      String         @map("user_id") @db.VarChar(255)
+  nom         String         @map("nom") @db.VarChar(255)
+  categorie   String         @map("categorie") @db.VarChar(100)
+  dureeBase   Int            @map("duree_base")
+  prixBase    Decimal        @map("prix_base") @db.Decimal(10, 2)
+  description String?        @map("description")
+  inclus      String[]       @map("inclus")
+  conseils    String?        @map("conseils")
+  statut      String?        @default("active") @map("statut") @db.VarChar(20)
+  populaire   Boolean?       @default(false) @map("populaire")
+  nouveaute   Boolean?       @default(false) @map("nouveaute")
+  ordre       Int?           @default(0) @map("ordre")
+  createdAt   DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime?      @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  bookings    Booking[]
+  photos      PhotoService[]
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  variantes   Variante[]
+
+  @@index([statut], map: "idx_services_statut")
+  @@index([userId], map: "idx_services_user")
+  @@map("services")
+}
+
+model PhotoService {
+  id        String    @id @default(dbgenerated("(gen_random_uuid())::text")) @map("id") @db.VarChar(255)
+  serviceId String    @map("service_id") @db.VarChar(255)
+  url       String    @map("url")
+  publicId  String?   @map("public_id")
+  ordre     Int?      @default(0) @map("ordre")
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  service   Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("photos_service")
+}
+
+model Variante {
+  id              String    @id @default(dbgenerated("(gen_random_uuid())::text")) @map("id") @db.VarChar(255)
+  serviceId       String    @map("service_id") @db.VarChar(255)
+  taille          String?   @map("taille") @db.VarChar(20)
+  grosseur        String?   @map("grosseur") @db.VarChar(20)
+  prixSupplement  Decimal?  @default(0) @map("prix_supplement") @db.Decimal(10, 2)
+  dureeSupplement Int?      @default(0) @map("duree_supplement")
+  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  bookings        Booking[]
+  service         Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("variantes")
+}
+
+model Disponibilite {
+  id          String    @id @default(dbgenerated("(gen_random_uuid())::text")) @map("id") @db.VarChar(255)
+  userId      String    @map("user_id") @db.VarChar(255)
+  jourSemaine Int       @map("jour_semaine")
+  heureDebut  String    @map("heure_debut") @db.VarChar(5)
+  heureFin    String    @map("heure_fin") @db.VarChar(5)
+  actif       Boolean?  @default(true) @map("actif")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId], map: "idx_disponibilites_user")
+  @@map("disponibilites")
+}
+
+model Exception {
+  id            String    @id @default(dbgenerated("(gen_random_uuid())::text")) @map("id") @db.VarChar(255)
+  userId        String    @map("user_id") @db.VarChar(255)
+  dateException DateTime  @map("date_exception") @db.Date
+  actif         Boolean?  @default(false) @map("actif")
+  heureDebut    String?   @map("heure_debut") @db.VarChar(5)
+  heureFin      String?   @map("heure_fin") @db.VarChar(5)
+  raison        String?   @map("raison") @db.VarChar(255)
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([dateException], map: "idx_exceptions_date")
+  @@index([userId], map: "idx_exceptions_user")
+  @@map("exceptions")
+}
+
+model Booking {
+  id              String        @id @default(dbgenerated("(gen_random_uuid())::text")) @map("id") @db.VarChar(255)
+  userId          String        @map("user_id") @db.VarChar(255)
+  serviceId       String        @map("service_id") @db.VarChar(255)
+  varianteId      String?       @map("variante_id") @db.VarChar(255)
+  clientNom       String        @map("client_nom") @db.VarChar(255)
+  clientEmail     String        @map("client_email") @db.VarChar(255)
+  clientTelephone String?       @map("client_telephone") @db.VarChar(50)
+  dateHeure       DateTime      @map("date_heure") @db.Timestamp(6)
+  lieu            String?       @default("salon") @map("lieu") @db.VarChar(20)
+  adresse         String?       @map("adresse")
+  taille          String?       @map("taille") @db.VarChar(20)
+  grosseur        String?       @map("grosseur") @db.VarChar(20)
+  statut          String?       @default("en_attente") @map("statut") @db.VarChar(30)
+  acompteMontant  Decimal       @map("acompte_montant") @db.Decimal(10, 2)
+  acompteStripeId String?       @map("acompte_stripe_id") @db.VarChar(255)
+  prixTotal       Decimal       @map("prix_total") @db.Decimal(10, 2)
+  message         String?       @map("message")
+  reminderSent    Boolean?      @default(false) @map("reminder_sent")
+  createdAt       DateTime?     @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime?     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  service         Service       @relation(fields: [serviceId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  variante        Variante?     @relation(fields: [varianteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  transactions    Transaction[]
+
+  @@index([dateHeure], map: "idx_bookings_date")
+  @@index([statut], map: "idx_bookings_statut")
+  @@index([userId], map: "idx_bookings_user")
+  @@map("bookings")
+}
+
+model Transaction {
+  id             String    @id @default(dbgenerated("(gen_random_uuid())::text")) @map("id") @db.VarChar(255)
+  bookingId      String    @map("booking_id") @db.VarChar(255)
+  montant        Decimal   @map("montant") @db.Decimal(10, 2)
+  type           String    @map("type") @db.VarChar(20)
+  stripeIntentId String?   @map("stripe_intent_id") @db.VarChar(255)
+  statut         String    @map("statut") @db.VarChar(20)
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  booking        Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("transactions")
+}
